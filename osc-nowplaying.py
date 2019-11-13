@@ -17,6 +17,7 @@ from threading import Timer
 
 # local class to control Music Player Daemon
 from mpd_logic import MPDLogic
+from bus_logic import BusData
 
 
 # call sleep timer this many times before sleep
@@ -53,34 +54,136 @@ class RepeatedTimer(object):
 
 
 
-global mpl
-global client
 
 class OscClient(object):
-    def __init__(self,ip_str, port=10000):
+    def __init__(self,ip_str, mplayer_logic, bus_data, port=10000):
         self.ip_str = ip_str
-        self.dirty = False
-        self.c = SimpleUDPClient(ip_str, 10000)
+        self.mpl = mplayer_logic
+        self.bd = bus_data
+        self.c = SimpleUDPClient(ip_str, port)
+        # mode is one of PLAYER, BUS, or LIGHTS. 
+        self.mode = "PLAYER"
+        self.state_lu = {"stop":0, "pause":1, "play":2}
+        self.last_status = ""
 
-    def unclean(self,ip_str):
-        if ip_str == self.ip_str:
-            self.dirty = True
-            #print(f"{ip_str} is dirty")
+    def next_mode(self):
+        if self.mode == "PLAYER":
+            newmode = "BUS"
+        elif self.mode == "BUS":
+            newmode = "PLAYER"
 
-# osc_clients = [SimpleUDPClient("192.168.1.221", 10000),
-#                SimpleUDPClient("192.168.1.225", 10000),
-#                SimpleUDPClient("192.168.1.231", 10000)]
-osc_clients = [OscClient("192.168.1.221"),
-               OscClient("192.168.1.225"),
-               OscClient("192.168.1.231")]
+        self.mode = newmode
+        print(f"new mode {newmode}")
 
+    def send_status(self):
+        if self.mode == "PLAYER":
+            self.send_mpl_status(self.mpl.get_short())
+
+        elif self.mode == "BUS":
+            self.send_bus_status()
+
+        self.send_time()
+
+
+    def send_bus_status(self):
+        self.c.send_message("/labels", ["MODE", "^^", "VV"])        
+        status = []
+        for bus in ['b27','b12']:
+            resp = bd.busses[bus].get_route_short()
+            status.append(resp[0])
+            status.append(resp[1])
+            #print(resp)
+
+        if status != self.last_status:
+            self.c.send_message("/status", status) 
+            self.last_status = status
+
+
+    def send_mpl_status(self,status):
+
+        if self.mpl.state == 'play':
+            self.c.send_message("/labels", ["stop", "<<", ">>"])
+        else:
+            self.c.send_message("/labels", ["play", "<<", ">>"])
+
+        if status != self.last_status:
+            self.c.send_message("/status", status) 
+            #if i == 0:
+            #    log_status(status)
+        if self.mpl.state in self.state_lu:
+            self.c.send_message("/volume", [mpl.volume, self.state_lu[mpl.state]] )
+        else:
+            self.c.send_message("/volume", [mpl.volume, -1] )
+        self.last_status = status
+
+
+    def send_time(self):
+        global time_left
+        #always send time
+        self.c.send_message("/time", 
+                              time.strftime("%H:%M:%S", time.localtime())) 
+
+        if time_left > 0:
+             self.c.send_message("/leds", self.get_led_bar(float(time_left)/sleep_time, 12, "ff0000"))
+        else:
+             self.c.send_message("/leds", ["000000"]*12)
+
+
+    def get_led_bar(self, ratio, num_leds, color, black="00000"):
+        """return a list of colors corresponding to ratio"""
+        clist = []
+        # faces encoder leds go CCW, so reverse for CW 
+        for i in range(num_leds):
+            if float(i)/num_leds <= ratio:
+                clist.append(color)
+            else:
+                clist.append(black)
+
+        return clist
+
+
+    def handle_button(self, button, value):
+        if  button == "A":
+            if value < 0.5:
+                self.mpl.toggle_play()
+            else:
+                self.next_mode()
+
+        elif  button == "B":
+            self.mpl.client.previous()
+
+        elif  button == "C":
+            self.mpl.client.next()
+
+
+
+mpl = MPDLogic()
+bd = BusData()
+
+dispatcher = Dispatcher()
+
+
+#print("sent at " + time.strftime("%H:%M:%S", time.localtime()))
+
+osc_client_ips = ["192.168.1.221",
+                  "192.168.1.225",
+                  "192.168.1.231"]
+
+osc_clients = []
+osc_client_dict = {}
+for ip in osc_client_ips:
+
+    client = OscClient(ip, mpl, bd)
+    osc_clients.append(client)
+    # make dict so we can look up clinet server from IP returned from handler
+    osc_client_dict[ip] = client
+
+# list of clients that sent aus an osc command and need to be refreshed. 
+dirty_clients = []
 
 #osc_clients = [ SimpleUDPClient("192.168.1.231", 10000)]
 
 
-mpl = MPDLogic()
-
-dispatcher = Dispatcher()
 
 
 def get_led_bar(ratio, num_leds, color, black="00000"):
@@ -96,8 +199,9 @@ def get_led_bar(ratio, num_leds, color, black="00000"):
     return clist
 
 
-def button_handler(client, address: str, *args: List[Any]) -> None:
-    global osc_clients
+def button_handler(client_addr, address: str, *args: List[Any]) -> None:
+    global osc_client_dict
+    global dirty_clients
     global mpl
     # We expect two float arguments
     #if not len(args) == 2 or type(args[0]) is not float or type(args[1]) is not float:
@@ -106,41 +210,30 @@ def button_handler(client, address: str, *args: List[Any]) -> None:
     # Check that address starts with filter
     #if not address[:-1] == "/filter":  # Cut off the last character
     #    return
+    client = osc_client_dict[client_addr[0]]
+    dirty_clients.append(client)
 
-    for c in osc_clients:
-        # set dirty flag in the client that sent us this
-        c.unclean(client[0])
 
-    sys.stdout.flush()
-
-    value1 = args[0]
+    value = args[0]
     #value2 = args[1]
-    filterno = address[-1]
-    print(f"Got addr {address} values: {value1}")
-    
-    if  filterno == "A":
-        #mpl.client.pause()
-        mpl.toggle_play()
+    button = str(address[-1])
 
-    if  filterno == "B":
-        mpl.client.previous()
-
-    if  filterno == "C":
-        mpl.client.next()
+    print(f"Got button {button} values: {value}")
+    client.handle_button(button, value)
 
 def heartbeat_handler(client, address: str, *args: List[Any]) -> None:
     #print("heartbeat from " + str(client))
     pass
         
 def encoder_handler(client, address: str, *args: List[Any]) -> None:
-    global osc_clients
+    global osc_client_dict
+    global dirty_clients
     global time_left
     global mpl
 
     value1 = args[0]
-    for c in osc_clients:
-        # set dirty flag in the client that sent us this
-        c.unclean(client[0])
+
+    dirty_clients.append(osc_client_dict[client[0]])
 
     print(f"Got addr {address} values: {value1}")
     
@@ -171,7 +264,13 @@ def log_status(status):
     print("LOG: {} {}".format(datetime.datetime.now().isoformat(),
                               status_str)) 
 
-def send_mpl_status(mpl, osc_clients):
+
+def send_status(mpl, osc_clients):
+    for c in osc_clients:
+        c.send_status()
+    
+
+def send_mpl_status_old(mpl, osc_clients):
     global last_status
     global time_left
     status = mpl.get_short() 
@@ -218,7 +317,7 @@ def sleep_timer(mpl, osc_clients):
         mpl.client.stop()
 
 
-rt = RepeatedTimer(1, send_mpl_status,  mpl, osc_clients) # it auto-starts, no need of rt.start()
+rt = RepeatedTimer(1, send_status,  mpl, osc_clients) # it auto-starts, no need of rt.start()
 
 time_left = -1
 st = RepeatedTimer(sleep_interval, sleep_timer,  mpl, osc_clients) # it auto-starts, no need of rt.start()
@@ -246,15 +345,11 @@ while True:
         print("Caught socket problem")
         raise e
 
-    dirty_clients = []
-    for c in osc_clients:
-        if c.dirty:
-            dirty_clients.append(c)
-
-    send_mpl_status(mpl, dirty_clients)
+    send_status(mpl, dirty_clients)
     for c in dirty_clients:
         print(f"sent {c.ip_str} an update")
-        c.dirty = False
+
+    dirty_clients = []
 
 
     #client.send_message("/filter8", [6., -2.])

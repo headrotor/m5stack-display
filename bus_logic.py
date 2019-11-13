@@ -8,6 +8,9 @@ class BusLogic(object):
     def __init__(self, route):
         #self.routes.append()
         self.route = route
+
+
+    def get_data(self):
         self.r = requests.get(self.route) 
         if self.r.status_code == requests.codes.ok:
             self.root = ET.fromstring(self.r.content)
@@ -20,6 +23,7 @@ class BusLogic(object):
         return {"stop":stop, "times":times}
 
     def get_route_short(self):
+        self.get_data()
         if self.r.status_code != requests.codes.ok:
             return ("Error fetching data", 
                     "status: {}",format(str(self.r.status_code)))
@@ -42,6 +46,7 @@ class BusLogic(object):
 
 
     def get_message(self):
+        self.get_data()
         msg = None
         for p in self.root.iter('message'):
             msg = p.attrib['text']
@@ -68,9 +73,50 @@ b49= 'http://webservices.nextbus.com/service/publicXMLFeed?command=predictions&a
 b27 = 'http://webservices.nextbus.com/service/publicXMLFeed?command=predictions&a=sf-muni&r=27&stopId=13739&useShortTitles=true'
 
 
+class BusData(object):
+    def __init__(self):
+        self.bus_url_dict = {}
+        self.busses = {}
+        self.lines = []
+        self.populate_dict()
+
+
+    def populate_dict(self):
+
+        self.bus_url_dict['b12'] = 'http://webservices.nextbus.com/service/publicXMLFeed?command=predictions&a=sf-muni&r=12&stopId=17733&useShortTitles=true'
+
+        self.bus_url_dict['b22']= 'http://webservices.nextbus.com/service/publicXMLFeed?command=predictions&a=sf-muni&r=22&stopId=13281&useShortTitles=true'
+
+        self.bus_url_dict['b49'] = 'http://webservices.nextbus.com/service/publicXMLFeed?command=predictions&a=sf-muni&r=49&stopId=15557&useShortTitles=true'
+
+        self.bus_url_dict['b27'] = 'http://webservices.nextbus.com/service/publicXMLFeed?command=predictions&a=sf-muni&r=27&stopId=13739&useShortTitles=true'
+
+        for key, value in self.bus_url_dict.items():
+            self.busses[key] = BusLogic(value)
+            self.lines.append(key)
+
+        print(self.lines)
+
+
+
 if __name__ == '__main__':
 
+
+    bd = BusData()
+
+    for bus in ['b27','b12']:
+        resp = bd.busses[bus].get_route_short()
+
+        print(resp)
+
+    exit(0)
+        
+
+
+
     busses = [BusLogic(b) for b in [b12 , b22, b27, b49]]
+
+
 
     while(True):
 
