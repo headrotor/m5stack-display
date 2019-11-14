@@ -3,7 +3,7 @@ import os
 import time
 import traceback
 import _thread
-
+import datetime
 
 # uses mpd2 for python 3 compat
 # for python 3: sudo pip3 install python-mpd2
@@ -23,6 +23,14 @@ class MPDLogic(object):
         self.reconnect()
         self.volume = 0
         self.state='stop'
+        self.status_str =""
+
+    def log_status(self, status):
+        status_str = " ".join(status)
+        if status_str != self.status_str:
+            print("LOG: {} {}".format(datetime.datetime.now().isoformat(),
+                                      status_str)) 
+            self.status_str = status_str
 
     def reconnect(self):
         print("connecting")
@@ -99,6 +107,7 @@ class MPDLogic(object):
                 self.state = result["state"]
 
             self.status = result
+            self.log_status(result)
             return result
 
         if "error" in result:

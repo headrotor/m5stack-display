@@ -13,7 +13,13 @@ class BusLogic(object):
     def get_data(self):
         self.r = requests.get(self.route) 
         if self.r.status_code == requests.codes.ok:
-            self.root = ET.fromstring(self.r.content)
+            try:
+                self.root = ET.fromstring(self.r.content)
+            except ET.ParseError:
+
+                self.r.status_code = "XML parse error"
+                self.root = ET.fromstring("")                
+
         else:
             self.root = ET.fromstring("")
        #print(response.content)
@@ -24,11 +30,11 @@ class BusLogic(object):
 
     def get_route_short(self):
         self.get_data()
-        if self.r.status_code != requests.codes.ok:
-            return ("Error fetching data", 
-                    "status: {}",format(str(self.r.status_code)))
         stopstr = "parse error"
-        predstr = "parse error"
+        predstr = ""
+        if self.r.status_code != requests.codes.ok:
+            print("Error fetching data, status: {}",format(str(self.r.status_code)))
+            return((stopstr, predstr))    
         for child in self.root:
             if child.tag == 'predictions':
                 stopstr = "{} at {}".format(child.attrib['routeTag'],
@@ -39,7 +45,8 @@ class BusLogic(object):
         #predstr = " - ".join(["{}".format(int(int(i)/60.)) for i in secs])
         if len(secs) > 0:
             minsecs = [ (int(int(i)/60), int(i)%60)  for i in secs]
-            predstr = ", ".join(["{}:{:02d}".format(ms[0],ms[1]) for ms in minsecs])
+            #predstr = ", ".join(["{}:{:02d}".format(ms[0],ms[1]) for ms in minsecs])
+            predstr = ", ".join(["{}".format(ms[0]) for ms in minsecs])
         else:
             predstr = "no current prediction"
         return((stopstr, predstr))

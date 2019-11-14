@@ -1,7 +1,6 @@
 from pythonosc.dispatcher import Dispatcher
 from typing import List, Any
 import time
-import datetime
 import sys
 import socket
 
@@ -149,7 +148,7 @@ class OscClient(object):
             else:
                 self.next_mode()
 
-        elif  button == "B":
+        elif button == "B":
             self.mpl.client.previous()
 
         elif  button == "C":
@@ -199,31 +198,24 @@ def get_led_bar(ratio, num_leds, color, black="00000"):
     return clist
 
 
-def button_handler(client_addr, address: str, *args: List[Any]) -> None:
-    global osc_client_dict
-    global dirty_clients
-    global mpl
-    # We expect two float arguments
-    #if not len(args) == 2 or type(args[0]) is not float or type(args[1]) is not float:
-    #    return
-
-    # Check that address starts with filter
-    #if not address[:-1] == "/filter":  # Cut off the last character
-    #    return
-    client = osc_client_dict[client_addr[0]]
-    dirty_clients.append(client)
-
-
-    value = args[0]
-    #value2 = args[1]
-    button = str(address[-1])
-
-    print(f"Got button {button} values: {value}")
-    client.handle_button(button, value)
 
 def heartbeat_handler(client, address: str, *args: List[Any]) -> None:
     #print("heartbeat from " + str(client))
     pass
+
+
+def button_handler(client, address: str, *args: List[Any]) -> None:
+    global osc_client_dict
+    global dirty_clients
+
+    value = args[0]
+    button = address[-1]
+    print(f"Got button {button} values: {value}")
+
+    client = osc_client_dict[client[0]]
+    dirty_clients.append(client)
+    client.handle_button(button, value)
+
         
 def encoder_handler(client, address: str, *args: List[Any]) -> None:
     global osc_client_dict
@@ -242,11 +234,13 @@ def encoder_handler(client, address: str, *args: List[Any]) -> None:
             mpl.volume_incr(+2)
         elif value1 == 0:
             print("push")
-            #mpl.toggle_play()
             if time_left > 0:
                 time_left = -1 # cancel sleep timer
             else:
-                time_left = int(sleep_time) # time left in sleep timer
+                if mpl.status == 'play':
+                    time_left = int(sleep_time) # time left in sleep timer
+                else:
+                    mpl.toggle_play()
         elif value1 < 0:
             mpl.volume_incr(-2)
         sys.stdout.flush()
@@ -256,22 +250,12 @@ dispatcher.map("/encoder", encoder_handler, needs_reply_address=True)
 dispatcher.map("/heartbeat", heartbeat_handler, needs_reply_address=True)  
 
 
-last_status=[" "]
-
-
-def log_status(status):
-    status_str = " ".join(status)
-    print("LOG: {} {}".format(datetime.datetime.now().isoformat(),
-                              status_str)) 
-
-
 def send_status(mpl, osc_clients):
     for c in osc_clients:
         c.send_status()
     
 
 def send_mpl_status_old(mpl, osc_clients):
-    global last_status
     global time_left
     status = mpl.get_short() 
     if status is None:
@@ -301,9 +285,6 @@ def send_mpl_status_old(mpl, osc_clients):
              client.c.send_message("/leds", get_led_bar(float(time_left)/sleep_time, 12, "ff0000"))
         else:
              client.c.send_message("/leds", ["000000"]*12)
-
-    #print("sent at " + time.strftime("%H:%M:%S", time.localtime()))
-    last_status = status
 
 
 def sleep_timer(mpl, osc_clients):
