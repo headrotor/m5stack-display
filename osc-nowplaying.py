@@ -234,10 +234,17 @@ def encoder_handler(client, address: str, *args: List[Any]) -> None:
             mpl.volume_incr(+2)
         elif value1 == 0:
             print("push")
-            if time_left > 0:
+            # logic: not playing, press enc to play
+            # when playing, press enc to start sleep timer
+            # when sleep timer is on, pressing again within 1 min cancels
+            # when sleep timer is on, pressing after 1 min cancels and stops.
+            if time_left > int(sleep_time - 1):
                 time_left = -1 # cancel sleep timer
+            elif time_left > 0:
+                time_left = -1
+                mpl.toggle_play()                
             else:
-                if mpl.status == 'play':
+                if mpl.state == 'play':
                     time_left = int(sleep_time) # time left in sleep timer
                 else:
                     mpl.toggle_play()

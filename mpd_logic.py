@@ -73,7 +73,7 @@ class MPDLogic(object):
         #print("msg_list:")
         #print(str(msg_list))
         sys.stdout.flush()
-
+        self.log_status(msg_list)
         return msg_list
 
     def get_volume(self):
@@ -107,7 +107,6 @@ class MPDLogic(object):
                 self.state = result["state"]
 
             self.status = result
-            self.log_status(result)
             return result
 
         if "error" in result:
