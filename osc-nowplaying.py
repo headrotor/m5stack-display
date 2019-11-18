@@ -262,36 +262,36 @@ def send_status(mpl, osc_clients):
         c.send_status()
     
 
-def send_mpl_status_old(mpl, osc_clients):
-    global time_left
-    status = mpl.get_short() 
-    if status is None:
-        #time.sleep(1)
-        return
-    state_lu = {"stop":0, "pause":1, "play":2}
+# def send_mpl_status_old(mpl, osc_clients):
+#     global time_left
+#     status = mpl.get_short() 
+#     if status is None:
+#         #time.sleep(1)
+#         return
+#     state_lu = {"stop":0, "pause":1, "play":2}
 
-    for i, client in enumerate(osc_clients):
-        if mpl.state == 'play':
-            client.c.send_message("/labels", ["stop", "<<", ">>"])
-        else:
-            client.c.send_message("/labels", ["play", "<<", ">>"])
-        if status != last_status:
-            client.c.send_message("/status", status) 
-            if i == 0:
-                log_status(status)
-        if mpl.state in state_lu:
-            client.c.send_message("/volume", [mpl.volume, state_lu[mpl.state]] )
-        else:
-            client.c.send_message("/volume", [mpl.volume, -1] )
+#     for i, client in enumerate(osc_clients):
+#         if mpl.state == 'play':
+#             client.c.send_message("/labels", ["stop", "<<", ">>"])
+#         else:
+#             client.c.send_message("/labels", ["play", "<<", ">>"])
+#         if status != last_status:
+#             client.c.send_message("/status", status) 
+#             if i == 0:
+#                 log_status(status)
+#         if mpl.state in state_lu:
+#             client.c.send_message("/volume", [mpl.volume, state_lu[mpl.state]] )
+#         else:
+#             client.c.send_message("/volume", [mpl.volume, -1] )
 
-        #always send time
-        client.c.send_message("/time", 
-                              time.strftime("%H:%M:%S", time.localtime())) 
+#         #always send time
+#         client.c.send_message("/time", 
+#                               time.strftime("%H:%M:%S", time.localtime())) 
 
-        if time_left > 0:
-             client.c.send_message("/leds", get_led_bar(float(time_left)/sleep_time, 12, "ff0000"))
-        else:
-             client.c.send_message("/leds", ["000000"]*12)
+#         if time_left > 0:
+#              client.c.send_message("/leds", get_led_bar(float(time_left)/sleep_time, 12, "ff0000"))
+#         else:
+#              client.c.send_message("/leds", ["000000"]*12)
 
 
 def sleep_timer(mpl, osc_clients):
