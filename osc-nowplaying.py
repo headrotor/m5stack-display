@@ -17,7 +17,7 @@ from threading import Timer
 # local class to control Music Player Daemon
 from mpd_logic import MPDLogic
 from bus_logic import BusData
-
+from dmx_logic import DMXLEDS
 
 # call sleep timer this many times before sleep
 sleep_time = 15
@@ -52,13 +52,12 @@ class RepeatedTimer(object):
         self.is_running = False
 
 
-
-
 class OscClient(object):
-    def __init__(self,ip_str, mplayer_logic, bus_data, port=10000):
+    def __init__(self,ip_str, mplayer_logic, bus_data, leds, port=10000):
         self.ip_str = ip_str
         self.mpl = mplayer_logic
         self.bd = bus_data
+        self.leds = leds
         self.c = SimpleUDPClient(ip_str, port)
         # mode is one of PLAYER, BUS, or LIGHTS. 
         self.mode = "PLAYER"
@@ -69,6 +68,8 @@ class OscClient(object):
         if self.mode == "PLAYER":
             newmode = "BUS"
         elif self.mode == "BUS":
+            newmode = "LEDS"
+        elif self.mode == "LEDS":
             newmode = "PLAYER"
 
         self.mode = newmode
@@ -81,8 +82,21 @@ class OscClient(object):
         elif self.mode == "BUS":
             self.send_bus_status()
 
+        elif self.mode == "LEDS":
+            self.send_led_status()
+
         self.send_time()
 
+
+    def send_led_status(self):
+        self.c.send_message("/labels", ["MODE", "^^", "VV"])        
+        status = []
+        
+        status.append("Lighting Mode")
+            #print(resp)
+        if status != self.last_status:
+            self.c.send_message("/status", status) 
+            self.last_status = status
 
     def send_bus_status(self):
         self.c.send_message("/labels", ["MODE", "^^", "VV"])        
@@ -142,6 +156,14 @@ class OscClient(object):
 
 
     def handle_button(self, button, value):
+        if self.mode == "PLAYER":
+            self.handle_button_player(button, value)
+        elif self.mode == "BUS":
+            self.handle_button_player(button, value)
+        elif self.mode == "LEDS":
+            self.handle_button_leds(button, value)
+
+    def handle_button_player(self, button, value):
         if  button == "A":
             if value < 0.5:
                 self.mpl.toggle_play()
@@ -154,10 +176,24 @@ class OscClient(object):
         elif  button == "C":
             self.mpl.client.next()
 
+    def handle_button_leds(self, button, value):
+        if  button == "A":
+            if value < 0.5:
+                self.mpl.toggle_play()
+            else:
+                self.next_mode()
+
+        elif button == "B":
+            self.leds.send_hsv(0, 0.1, 0.8, 0.5)
+
+        elif  button == "C":
+            self.leds.send_hsv(0, 0.1, 0.8, 0.0)
+
 
 
 mpl = MPDLogic()
 bd = BusData()
+leds = DMXLEDS()
 
 dispatcher = Dispatcher()
 
@@ -172,7 +208,7 @@ osc_clients = []
 osc_client_dict = {}
 for ip in osc_client_ips:
 
-    client = OscClient(ip, mpl, bd)
+    client = OscClient(ip, mpl, bd, leds)
     osc_clients.append(client)
     # make dict so we can look up clinet server from IP returned from handler
     osc_client_dict[ip] = client

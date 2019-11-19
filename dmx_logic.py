@@ -141,11 +141,11 @@ if __name__ == '__main__':
     lights = DMXLEDS()
     if len(sys.argv) == 2:
         print(str(sys.argv))
-        lights.set_fade(2.0)
-        lights.send_rgba(0, [0.5, 0, 0, 0.25])
-        time.sleep(5)
+        lights.set_fade(1.0)
+        #lights.send_rgba(0, [0.5, 0, 0, 0.25])
+        #time.sleep(5)
         #lights.set_fade(0.0)
-        lights.send_rgba(0, [0., 0, 0, 0.])
+        #lights.send_rgba(0, [0., 0, 0, 0.])
         #lights.send_hex(0, sys.argv[1])
 
     elif len(sys.argv) == 4:

@@ -4,6 +4,9 @@
   (example code //https://github.com/m5stack/M5-ProductExampleCodes/blob/master/Module/ENCODER/Arduino/faces_encoder/faces_encoder.ino)
 */
 
+// TODO: IP address in status on starup (remove 2 s delay)
+// throttle drawing because of crash on rapid redraw?? 
+
 #include <Arduino.h>
 
 #include <WiFi.h>

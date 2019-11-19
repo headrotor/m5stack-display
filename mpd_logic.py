@@ -184,7 +184,7 @@ class MPDLogic(object):
             pass
 
         if "error" in playd:
-            handle_error(playd['error'])
+            self.handle_error(playd['error'])
             return playd
 
         if 'state' in status:
