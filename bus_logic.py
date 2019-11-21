@@ -83,9 +83,15 @@ b27 = 'http://webservices.nextbus.com/service/publicXMLFeed?command=predictions&
 class BusData(object):
     def __init__(self):
         self.bus_url_dict = {}
+        # dict of bus line data
         self.busses = {}
+        # list of the same
         self.lines = []
         self.populate_dict()
+        # number of lines to display
+        self.num_display_lines = 2
+        # index of first line to display
+        self.display_line = 0
 
 
     def populate_dict(self):
@@ -98,18 +104,50 @@ class BusData(object):
 
         self.bus_url_dict['b27'] = 'http://webservices.nextbus.com/service/publicXMLFeed?command=predictions&a=sf-muni&r=27&stopId=13739&useShortTitles=true'
 
+        keys = []
         for key, value in self.bus_url_dict.items():
             self.busses[key] = BusLogic(value)
-            self.lines.append(key)
+            keys.append(key)
 
-        print(self.lines)
+        # sort keys by bus line number
+        #keys.sort()
+        for k in keys:
+            self.lines.append(k)
 
+    def scroll_lines(self,scroll_val):
+        # respond to gui scroll event. Select next lines to display. 
+        self.display_line = (self.display_line + scroll_val) % len(self.lines)
+        
+        if self.display_line >= len(self.lines):
+            self.display_line = 0
+        print(self.display_line)
 
+    def get_lines(self):
+        display_lines = []
+        for i in range(self.num_display_lines):
+            line = (self.display_line + i) % len(self.lines)
+            display_lines.append(self.lines[line])
+        return(display_lines)
+
+    def get_display_data(self):
+        display_data = []
+        lines = self.get_lines()
+        for l in lines:
+            display_data.extend(self.busses[l].get_route_short())
+
+        return display_data
 
 if __name__ == '__main__':
 
 
     bd = BusData()
+
+    for i in range(5):
+        a = bd.get_display_data()
+        print(a)
+        bd.scroll_lines(-1)
+        print("-----")
+
 
     for bus in ['b27','b12']:
         resp = bd.busses[bus].get_route_short()

@@ -100,12 +100,7 @@ class OscClient(object):
 
     def send_bus_status(self):
         self.c.send_message("/labels", ["MODE", "^^", "VV"])        
-        status = []
-        for bus in ['b27','b12']:
-            resp = bd.busses[bus].get_route_short()
-            status.append(resp[0])
-            status.append(resp[1])
-            #print(resp)
+        status = bd.get_display_data()
 
         if status != self.last_status:
             self.c.send_message("/status", status) 
@@ -154,14 +149,62 @@ class OscClient(object):
 
         return clist
 
+    def handle_encoder(self, value, time_left):
+        if self.mode == "PLAYER":
+            time_left = self.handle_encoder_player(value, time_left)
+        elif self.mode == "BUS":
+            time_left = self.handle_encoder_player(value, time_left)
+        elif self.mode == "LEDS":
+            time_left = self.handle_encoder_player(value, time_left)
+        return time_left
+
+    def handle_encoder_player(self, value, time_left):
+        if value > 0:
+            self.mpl.volume_incr(+3)
+        elif value == 0:
+            print("push")
+            # logic: not playing, press enc to play
+            # when playing, press enc to start sleep timer
+            # when sleep timer is on, pressing again within 1 min cancels
+            # when sleep timer is on, pressing after 1 min cancels and stops.
+            if time_left > int(sleep_time - 1):
+                time_left = -1 # cancel sleep timer
+            elif time_left > 0:
+                time_left = -1
+                mpl.toggle_play()                
+            else:
+                if mpl.state == 'play':
+                    time_left = int(sleep_time) # time left in sleep timer
+                else:
+                    mpl.toggle_play()
+        elif value < 0:
+            self.mpl.volume_incr(-3)
+        return time_left
+    
+
 
     def handle_button(self, button, value):
         if self.mode == "PLAYER":
             self.handle_button_player(button, value)
         elif self.mode == "BUS":
-            self.handle_button_player(button, value)
+            self.handle_button_bus(button, value)
         elif self.mode == "LEDS":
             self.handle_button_leds(button, value)
+
+
+
+    def handle_button_bus(self, button, value):
+        if  button == "A":
+            if value < 0.5:
+                self.mpl.toggle_play()
+            else:
+                self.next_mode()
+
+        elif button == "B":
+            self.bd.scroll_lines(-1)
+
+        elif  button == "C":
+            self.bd.scroll_lines(+1)
 
     def handle_button_player(self, button, value):
         if  button == "A":
@@ -184,10 +227,13 @@ class OscClient(object):
                 self.next_mode()
 
         elif button == "B":
-            self.leds.send_hsv(0, 0.1, 0.8, 0.5)
+            self.leds.set_fade(0.33)
+            self.leds.hue_spread = 0.1
+            self.leds.send_hsv(0.1, 0.8, 0.5)
 
         elif  button == "C":
-            self.leds.send_hsv(0, 0.1, 0.8, 0.0)
+            self.leds.set_fade(0.1)
+            self.leds.send_hsv(0.1, 0.8, 0.0)
 
 
 
@@ -257,11 +303,13 @@ def encoder_handler(client, address: str, *args: List[Any]) -> None:
     global osc_client_dict
     global dirty_clients
     global time_left
-    global mpl
 
-    value1 = args[0]
+    value = args[0]
 
-    dirty_clients.append(osc_client_dict[client[0]])
+    client = osc_client_dict[client[0]]
+    dirty_clients.append(client)
+    time_left = client.handle_encoder(value, time_left)
+    return
 
     print(f"Got addr {address} values: {value1}")
     

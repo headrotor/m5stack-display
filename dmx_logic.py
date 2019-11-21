@@ -12,8 +12,8 @@ class DMXLEDS(object):
                               "192.168.1.242",
                               "192.168.1.243"]
 
-        self.dmx_osc_client_ips = ["192.168.1.240"]
-
+        #self.dmx_osc_client_ips = ["192.168.1.241"]
+        self.hue_spread = 0
         self.clients = []
         for ip in self.dmx_osc_client_ips:
             client = OscDMXClient(ip)
@@ -22,9 +22,13 @@ class DMXLEDS(object):
     def send_rgba(self,client_index, rgba):
         self.clients[client_index].send_rgba(rgba)
 
-    def send_hsv(self,client_index, h, s, v):
-        self.clients[client_index].send_hsv(h, s, v)
-
+    def send_hsv(self, h, s, v):
+        for c in self.clients:
+            c.send_hsv(h, s, v)
+            h = h + self.hue_spread
+            while(h > 1.0):
+                h -= 1.0
+            print(f"hue: {self.hue_spread}")
 
     def send_hex(self,client_index, hexcolor):
         self.clients[client_index].send_hex(hexcolor)
@@ -149,13 +153,22 @@ if __name__ == '__main__':
         #lights.send_hex(0, sys.argv[1])
 
     elif len(sys.argv) == 4:
-        lights.send_hsv(0, 
-                        float(sys.argv[1]),
+        #print(sending)
+        lights.set_fade(0.5)
+        lights.hue_spread = 0.3
+        lights.send_hsv(float(sys.argv[1]),
                         float(sys.argv[2]),
-                         float(sys.argv[3]))
+                        float(sys.argv[3]))
+
+
+        time.sleep(5)
+        lights.send_hsv(float(sys.argv[1]) + 0.1,
+                        float(sys.argv[2]),
+                        0.)
+        
 
     elif len(sys.argv) == 5:
-        lights.send_rgba(0,
+        lights.send_rgba(1,
                          float(sys.argv[1]),
                          float(sys.argv[2]),
                          float(sys.argv[3]),
