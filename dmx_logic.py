@@ -5,19 +5,58 @@ import math
 from pythonosc.udp_client import SimpleUDPClient
 # docs at https://pypi.org/project/python-osc/
 
+def constrain(val, min_val=0., max_val=1.):
+    return min(max_val, max(min_val, val))
+
+
 class DMXLEDS(object):
     def __init__(self):
         self.dmx_osc_client_ips = ["192.168.1.240",
-                              "192.168.1.241",
-                              "192.168.1.242",
-                              "192.168.1.243"]
+                                   "192.168.1.241",
+                                   "192.168.1.242",
+                                   "192.168.1.243"]
+#                                   "192.168.1.245"]
 
         #self.dmx_osc_client_ips = ["192.168.1.241"]
-        self.hue_spread = 0
+        self.hue_spread = 0.
+        self.hue = 0.
+        self.sat = 0.5
+        self.val = 0.
         self.clients = []
+ 
+
         for ip in self.dmx_osc_client_ips:
             client = OscDMXClient(ip)
             self.clients.append(client)
+
+        self.on = 0
+
+
+    def change_hue(self,incr):
+        new_hue = self.hue + incr
+        while new_hue > 1.0:
+            new_hue -= 1.0
+        while new_hue < 0.0:
+            new_hue += 1.0
+        self.hue = new_hue
+        print(f"new hue: {self.hue}")
+
+    def change_val(self,incr):
+        self.val = constrain(self.val + incr)
+        print(f"new value: {self.val}")
+
+    def change_sat(self,incr):
+        self.sat = constrain(self.sat + incr)
+        print(f"new sat: {self.sat}")
+
+    def change_spread(self,incr):
+        self.hue_spread = constrain(self.hue_spread + incr, 0, 0.5)
+        print(f"new spread: {self.hue_spread}")
+
+    def send(self):
+        self.send_hsv(self.hue, self.sat, self.val)
+        self.send_hsv(self.hue, self.sat, self.val)
+
 
     def send_rgba(self,client_index, rgba):
         self.clients[client_index].send_rgba(rgba)
@@ -28,7 +67,6 @@ class DMXLEDS(object):
             h = h + self.hue_spread
             while(h > 1.0):
                 h -= 1.0
-            print(f"hue: {self.hue_spread}")
 
     def send_hex(self,client_index, hexcolor):
         self.clients[client_index].send_hex(hexcolor)
@@ -36,6 +74,22 @@ class DMXLEDS(object):
     def set_fade(self,fade):
         for c in self.clients:
             c.fade_time=float(fade)
+            c.set_gamma(True)
+            c.set_dither(True)
+
+
+    def toggle(self):
+        if self.on == 1:
+            self.set_fade(0.5)
+            self.send_hsv(0., 0., 0.)
+            print("turning off")
+        else:
+            self.set_fade(0.33)
+            if self.val < 0.2:
+                self.val = 0.5
+            self.send()
+            print("turning off")
+        self.on = 1 - self.on
 
 class OscDMXClient(object):
     def __init__(self,ip_str,  port=10000):
@@ -47,6 +101,7 @@ class OscDMXClient(object):
         self.gamma = True
         self.fade_time = 0.
         self.dither_flag = True
+
 
     def constrain(self, val, min_val, max_val):
         return min(max_val, max(min_val, val))
@@ -70,7 +125,7 @@ class OscDMXClient(object):
         if fade_time is None:
             fade_time = self.fade_time
         assert len(hexcolor) == 8
-        print(f"sending hexcolor {hexcolor}")
+        #print(f"sending hexcolor {hexcolor} to {self.ip_str}")
         self.c.send_message("/hexfade", [hexcolor, fade_time])
 
 
@@ -83,7 +138,7 @@ class OscDMXClient(object):
             self.c.send_message("/setgamma", [0])
 
     def set_dither(self, dvalue):
-        print(f"set dither  {gvalue}")
+        print(f"set dither  {dvalue}")
         self.dither_flag = dvalue
         if dvalue:
             self.c.send_message("/setdither", [1])
@@ -167,10 +222,10 @@ if __name__ == '__main__':
                         0.)
         
 
-    elif len(sys.argv) == 5:
-        lights.send_rgba(1,
-                         float(sys.argv[1]),
-                         float(sys.argv[2]),
-                         float(sys.argv[3]),
-                         float(sys.argv[4])) 
+    elif len(sys.argv) == 6:
+        # index, (int), rgba (hex, eg ff0000ff)
+        lights.clients[int(sys.argv[1])].send_rgba((float(sys.argv[2]),
+                                                    float(sys.argv[3]),
+                                                    float(sys.argv[4]),
+                                                    float(sys.argv[5])))
 

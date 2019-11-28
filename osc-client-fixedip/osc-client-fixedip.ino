@@ -5,7 +5,9 @@
 */
 
 // TODO: IP address in status on starup (remove 2 s delay)
-// throttle drawing because of crash on rapid redraw?? 
+// throttle drawing because of crash on rapid redraw?
+// visual confirmation of long button press 
+// "no server" timestamp to draw if powered on with no server send
 
 #include <Arduino.h>
 

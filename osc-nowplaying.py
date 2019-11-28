@@ -34,6 +34,7 @@ class RepeatedTimer(object):
         self.args       = args
         self.kwargs     = kwargs
         self.is_running = False
+        
         self.start()
 
     def _run(self):
@@ -61,8 +62,21 @@ class OscClient(object):
         self.c = SimpleUDPClient(ip_str, port)
         # mode is one of PLAYER, BUS, or LIGHTS. 
         self.mode = "PLAYER"
+        self.mode = "LEDS"
         self.state_lu = {"stop":0, "pause":1, "play":2}
         self.last_status = ""
+
+
+        # stuff for led mode
+        self.led_mode = 0
+        self.led_modes = ["Value", "Hue", "Sat", "Spread"]
+        self.hue_incr = 0.02
+        self.val_incr = 0.02
+        self.sat_incr = 0.02
+        self.spred_incr = 0.02
+
+
+
 
     def next_mode(self):
         if self.mode == "PLAYER":
@@ -89,14 +103,22 @@ class OscClient(object):
 
 
     def send_led_status(self):
-        self.c.send_message("/labels", ["MODE", "^^", "VV"])        
-        status = []
-        
-        status.append("Lighting Mode")
-            #print(resp)
-        if status != self.last_status:
-            self.c.send_message("/status", status) 
-            self.last_status = status
+        display = []
+        display.append("LM")
+        #display.append("Lighting Mode")
+        for i, val in enumerate(self.led_modes):
+            if i == self.led_mode:
+                display.append(">" + self.led_modes[i] + "<")
+            else:
+                display.append(" " + self.led_modes[i] + " ")
+
+        if display != self.last_status:
+            self.c.send_message("/status", display) 
+            self.last_status = display
+
+        #self.c.send_message("/labels", ["on/off", "++", "--"])        
+        self.c.send_message("/labels", ["on/off", "   ++   ", "   --   ", "  "])        
+
 
     def send_bus_status(self):
         self.c.send_message("/labels", ["MODE", "^^", "VV"])        
@@ -138,7 +160,8 @@ class OscClient(object):
 
 
     def get_led_bar(self, ratio, num_leds, color, black="00000"):
-        """return a list of colors corresponding to ratio"""
+        """return a list of colors corresponding to ratio, this is 
+        not for DMX LEDs, it's for color ring on M5STACK encoder"""
         clist = []
         # faces encoder leds go CCW, so reverse for CW 
         for i in range(num_leds):
@@ -155,7 +178,7 @@ class OscClient(object):
         elif self.mode == "BUS":
             time_left = self.handle_encoder_player(value, time_left)
         elif self.mode == "LEDS":
-            time_left = self.handle_encoder_player(value, time_left)
+            self.handle_encoder_leds(value)
         return time_left
 
     def handle_encoder_player(self, value, time_left):
@@ -180,7 +203,36 @@ class OscClient(object):
         elif value < 0:
             self.mpl.volume_incr(-3)
         return time_left
-    
+
+    def handle_encoder_leds(self, value):
+        if value == 0:
+            self.led_mode += 1
+            if self.led_mode >= len(self.led_modes):
+                self.led_mode = 0
+
+        elif value > 0:
+            if self.led_modes[self.led_mode] == "Value":
+                self.leds.change_val(0.01)
+            elif self.led_modes[self.led_mode] == "Hue":
+                self.leds.change_hue(0.005)
+            elif self.led_modes[self.led_mode] == "Sat":
+                self.leds.change_sat(0.02)
+            elif self.led_modes[self.led_mode] == "Spread":
+                self.leds.change_spread(0.01)
+        elif value < 0:
+            if self.led_modes[self.led_mode] == "Value":
+                self.leds.change_val(-0.01)
+            elif self.led_modes[self.led_mode] == "Hue":
+                self.leds.change_hue(-0.005)
+            elif self.led_modes[self.led_mode] == "Sat":
+                self.leds.change_sat(-0.02)
+            elif self.led_modes[self.led_mode] == "Spread":
+                self.leds.change_spread(-0.01)
+        self.leds.send()
+
+
+
+
 
 
     def handle_button(self, button, value):
@@ -201,7 +253,10 @@ class OscClient(object):
                 self.next_mode()
 
         elif button == "B":
-            self.bd.scroll_lines(-1)
+            if value < 0.5:
+                self.bd.scroll_lines(-1)
+            else:
+                self.leds.toggle()
 
         elif  button == "C":
             self.bd.scroll_lines(+1)
@@ -214,7 +269,10 @@ class OscClient(object):
                 self.next_mode()
 
         elif button == "B":
-            self.mpl.client.previous()
+            if value < 0.5:
+                self.mpl.client.previous()
+            else:
+                self.leds.toggle()
 
         elif  button == "C":
             self.mpl.client.next()
@@ -222,19 +280,43 @@ class OscClient(object):
     def handle_button_leds(self, button, value):
         if  button == "A":
             if value < 0.5:
-                self.mpl.toggle_play()
+                self.leds.toggle()
             else:
                 self.next_mode()
 
         elif button == "B":
-            self.leds.set_fade(0.33)
-            self.leds.hue_spread = 0.1
-            self.leds.send_hsv(0.1, 0.8, 0.5)
+            if value < 0.5:
+                if self.led_modes[self.led_mode] == "Value":
+                    self.leds.change_val(0.02)
+                elif self.led_modes[self.led_mode] == "Hue":
+                    self.leds.change_hue(0.01)
+                elif self.led_modes[self.led_mode] == "Sat":
+                    self.leds.change_sat(0.02)
+                elif self.led_modes[self.led_mode] == "Spread":
+                    self.leds.change_spread(0.005)
+                self.leds.send()
+            else: 
+                self.led_mode += 1
+                if self.led_mode >= len(self.led_modes):
+                    self.led_mode = 0
+                
+
 
         elif  button == "C":
-            self.leds.set_fade(0.1)
-            self.leds.send_hsv(0.1, 0.8, 0.0)
-
+            if value < 0.5:
+                if self.led_modes[self.led_mode] == "Value":
+                    self.leds.change_val(-0.02)
+                elif self.led_modes[self.led_mode] == "Hue":
+                    self.leds.change_hue(-0.01)
+                elif self.led_modes[self.led_mode] == "Sat":
+                    self.leds.change_sat(-0.02)
+                elif self.led_modes[self.led_mode] == "Spread":
+                    self.leds.change_spread(-0.005)
+                self.leds.send() 
+            else:
+                self.led_mode += 1
+                if self.led_mode < 0:
+                    self.led_mode = len(self.led_mode) - 1
 
 
 mpl = MPDLogic()
