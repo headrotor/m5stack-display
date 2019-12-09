@@ -18,6 +18,16 @@
 
 
 
+// PINOUT:
+// D8 -- output for relay switch
+
+
+#define RELAY_PIN D7
+
+// milliseconds to time out and turn off relay
+// negative value indicates timer is not running
+long relay_timeout = -1;
+
 //todo: switch colors etc. from touchOSC
 
 #define NUM_DMX_CHAN 4
@@ -31,7 +41,7 @@ void zero_dmx() {
   }
 }
 
-const IPAddress ip(192, 168, 1, 242);
+const IPAddress ip(192, 168, 1, 240);
 const IPAddress gateway(192, 168, 1, 1);
 const IPAddress subnet(255, 255, 255, 0);
 
@@ -86,6 +96,9 @@ void setup() {
   // Start Serial port
   Serial.begin(115200);
 
+
+
+
   zero_dmx();
 
   // WiFi stuff
@@ -100,7 +113,8 @@ void setup() {
 
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
-
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, LOW);
 
 
   dmxB.begin(12);
@@ -119,7 +133,18 @@ void loop() {
     do_fade();
     last_ms = millis();
   }
-  //delay(1);
+
+  if (relay_timeout > 0) {
+
+    //delay(1);
+    if (millis() > relay_timeout) {
+      digitalWrite(RELAY_PIN, LOW);
+      relay_timeout = -1;
+    }
+
+  }
+  Serial.println(relay_timeout);
+
 }
 
 
@@ -246,6 +271,33 @@ void init_osc_callbacks() {
     Serial.println(dither_flag);
   });
 
+
+  osc.subscribe("/switch", [](OscMessage & m)
+  {
+    int i;
+    digitalWrite(LED_BUILTIN, HIGH);
+    Serial.print("/switch, length = ");
+    Serial.print(m.size());
+    Serial.println("");
+    int value =  (m.arg<int>(0) > 0);
+    if (value > 0) {
+      digitalWrite(RELAY_PIN, HIGH);
+      Serial.println("ON");
+      if (m.size() > 1) {
+        // we got a timeout argument in ms
+        relay_timeout = millis() +  m.arg<int>(1);
+        // this could overflow but hard to test for because undefined
+      }
+
+
+    } else {
+      digitalWrite(RELAY_PIN, LOW);
+      relay_timeout = -1;
+      Serial.println("OFF");
+    }
+
+
+  });
 
 
   osc.subscribe("/hexfade", [](OscMessage & m)

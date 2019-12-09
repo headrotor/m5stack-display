@@ -39,19 +39,19 @@ class DMXLEDS(object):
         while new_hue < 0.0:
             new_hue += 1.0
         self.hue = new_hue
-        print(f"new hue: {self.hue}")
+        #print(f"new hue: {self.hue}")
 
     def change_val(self,incr):
         self.val = constrain(self.val + incr)
-        print(f"new value: {self.val}")
+        #print(f"new value: {self.val}")
 
     def change_sat(self,incr):
         self.sat = constrain(self.sat + incr)
-        print(f"new sat: {self.sat}")
+        #print(f"new sat: {self.sat}")
 
     def change_spread(self,incr):
         self.hue_spread = constrain(self.hue_spread + incr, 0, 0.5)
-        print(f"new spread: {self.hue_spread}")
+        #print(f"new spread: {self.hue_spread}")
 
     def send(self):
         self.send_hsv(self.hue, self.sat, self.val)
@@ -91,6 +91,7 @@ class DMXLEDS(object):
             print("turning off")
         self.on = 1 - self.on
 
+
 class OscDMXClient(object):
     def __init__(self,ip_str,  port=10000):
         self.ip_str = ip_str
@@ -125,12 +126,12 @@ class OscDMXClient(object):
         if fade_time is None:
             fade_time = self.fade_time
         assert len(hexcolor) == 8
-        #print(f"sending hexcolor {hexcolor} to {self.ip_str}")
+        ##print(f"sending hexcolor {hexcolor} to {self.ip_str}")
         self.c.send_message("/hexfade", [hexcolor, fade_time])
 
 
     def set_gamma(self, gvalue):
-        print(f"set gamma  {gvalue}")
+        #print(f"set gamma  {gvalue}")
         self.gamma_flag = gvalue
         if gvalue:
             self.c.send_message("/setgamma", [1])
@@ -138,12 +139,25 @@ class OscDMXClient(object):
             self.c.send_message("/setgamma", [0])
 
     def set_dither(self, dvalue):
-        print(f"set dither  {dvalue}")
+        #print(f"set dither  {dvalue}")
         self.dither_flag = dvalue
         if dvalue:
             self.c.send_message("/setdither", [1])
         else:
             self.c.send_message("/setdither", [0])
+
+    def set_switch(self, svalue, timeout_s=None):
+        """turn on/off relay-switched outlet. Svalue True to turn on, 
+        False to turn off, timeout is seconds (int or fp) to turn off"""
+        #print(f"set switch  {svalue}")
+        if svalue:
+            if timeout_s is not None:
+                self.c.send_message("/switch", [1, int(1000*timeout_s)])
+            else:
+                self.c.send_message("/switch", [1])
+        else:
+            self.c.send_message("/switch", [0])
+
 
     def hsv_to_rgba(self, h, s, v):
         """Improved implementation of hsv colorspace to red, green, blue and
@@ -198,10 +212,19 @@ class OscDMXClient(object):
 if __name__ == '__main__':
 
     lights = DMXLEDS()
+
+    lights.clients[0].set_switch(True,2)
+    time.sleep(5)
+    lights.clients[0].set_switch(True,5)
+    #lights.clients[0].set_switch(False)
+    #time.sleep(0)
+
+    exit(0)
+
     if len(sys.argv) == 2:
         print(str(sys.argv))
         lights.set_fade(1.0)
-        #lights.send_rgba(0, [0.5, 0, 0, 0.25])
+        lights.send_rgba(0, [0.5, 0, 0, 0.25])
         #time.sleep(5)
         #lights.set_fade(0.0)
         #lights.send_rgba(0, [0., 0, 0, 0.])
