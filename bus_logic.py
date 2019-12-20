@@ -3,12 +3,12 @@ import sys
 import time
 import requests
 import xml.etree.ElementTree as ET
+import bart
 
 class BusLogic(object):
     def __init__(self, route):
         #self.routes.append()
         self.route = route
-
 
     def get_data(self):
         self.r = requests.get(self.route) 
@@ -94,6 +94,33 @@ class BusData(object):
         self.display_line = 0
 
 
+        self.bart = bart.Bart()
+        # throttle BART data requests to this many seconds
+        self.bart_throttle = 60 
+        self.last_bart_time = time.time() - self.bart_throttle
+        self.bart_status = "no BART announcements"
+
+    def get_bart_status(self):
+        if time.time() -self.last_bart_time < self.bart_throttle:
+            #print("throttled")
+            return str(self.bart_status)
+        bstatus =  self.bart.bsa()
+        self.last_bart_time = time.time()
+
+        bstatus = bstatus.splitlines()
+        
+        for line in bstatus:
+            if line[0:8] == "SMS text":
+                #strip initial "SMS text announcement: " and truncate to 32 chars              
+                status_line = line[23:-1]
+                if len(status_line) > 32:
+                    self.bart_status = "BART: {:32.32}".format(status_line)
+                else:
+                    self.bart_status = "BART: {}".format(status_line)
+                #print(self.bart_status)
+                
+        return str(self.bart_status)
+
     def populate_dict(self):
 
         self.bus_url_dict['b12'] = 'http://webservices.nextbus.com/service/publicXMLFeed?command=predictions&a=sf-muni&r=12&stopId=17733&useShortTitles=true'
@@ -134,7 +161,8 @@ class BusData(object):
         lines = self.get_lines()
         for l in lines:
             display_data.extend(self.busses[l].get_route_short())
-
+            
+        display_data.append(self.get_bart_status())
         return display_data
 
 if __name__ == '__main__':
@@ -142,6 +170,11 @@ if __name__ == '__main__':
 
     bd = BusData()
 
+    while True:
+        bd.get_bart_status()
+        time.sleep(2)
+
+    exit(0)
     for i in range(5):
         a = bd.get_display_data()
         print(a)

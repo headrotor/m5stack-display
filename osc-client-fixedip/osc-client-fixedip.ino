@@ -6,7 +6,7 @@
 
 // TODO: IP address in status on starup (remove 2 s delay)
 // throttle drawing because of crash on rapid redraw?
-// visual confirmation of long button press 
+// visual confirmation of long button press
 // "no server" timestamp to draw if powered on with no server send
 
 #include <Arduino.h>
@@ -44,17 +44,19 @@
 
 //const IPAddress ip(192, 168, 1, 225);
 
-const IPAddress ip(192, 168, 1, 221);
+const IPAddress ip(192, 168, 1, 227);
 
 //const IPAddress ip(192, 168, 1, 231);
 
 const IPAddress gateway(192, 168, 1, 1);
 const IPAddress subnet(255, 255, 255, 0);
 
+
 //FACES encoder example
 // https://github.com/m5stack/M5-ProductExampleCodes/tree/master/Module/ENCODER/Arduino/faces_encoder
 #define FACES
 #define NUM_LEDS 12
+
 
 //for M5stack FIRE, leds are neopixels:
 //http://forum.m5stack.com/topic/273/how-use-rgb-led-on-m5-fire/2
@@ -219,7 +221,7 @@ void set_led(int i, int r, int g, int b) {
   Wire.write(b);
   Wire.endTransmission();
 #elif defined FIRE
-  
+
   leds[i].setRGB(r, g, b);
 
 #endif
@@ -237,13 +239,14 @@ void handle_status(OSCMessage & msg) {
   int i;
 
   msg_lines = msg.size();
-  for (i = 0; i < msg_lines; i++) {
+  for (i = 0; i < min(msg_lines, ROWS); i++) {
     msg.getString(i, msg_str, COLS);
     String stat = (char*)msg_str;
     // copy message lines into display array
     stat.toCharArray(disp[i], COLS);
     Serial.println(msg_str);
   }
+  msg_lines = i;
 
   redraw = 2;
 }
@@ -363,6 +366,9 @@ void setup() {
 
   M5.Lcd.print("My IP address: ");
   M5.Lcd.println(WiFi.localIP());
+  strncpy(disp[0], "local IP", COLS);
+  String ipstr = WiFi.localIP().toString();
+  ipstr.toCharArray(disp[1], COLS);
 
   Serial.println("Starting UDP");
   Udp.begin(localPort);
@@ -371,9 +377,15 @@ void setup() {
 #ifdef ESP32
   Serial.println(localPort);
   M5.Lcd.println(localPort);
+  sprintf(disp[2], "port: %i", localPort);
+
 #endif
 
-  delay(2000);
+  msg_lines = 3;
+  redraw = 2;
+
+  // display ip in status
+
 
   clear_display();
 }
