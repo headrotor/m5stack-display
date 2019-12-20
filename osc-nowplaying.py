@@ -479,10 +479,11 @@ time_left = -1
 st = RepeatedTimer(sleep_interval, sleep_timer,  mpl, osc_clients) # it auto-starts, no need of rt.start()
 
 
-#server = BlockingOSCUDPServer(("192.168.1.148", 12000), dispatcher)
 
 # Send message and receive exactly one message (blocking)
-server = BlockingOSCUDPServer(("192.168.1.148", 12000), dispatcher)
+#server = BlockingOSCUDPServer(("192.168.1.148", 12000), dispatcher)
+server = BlockingOSCUDPServer(("192.168.1.144", 12000), dispatcher)
+#server = BlockingOSCUDPServer(("127.0.0.1", 12000), dispatcher)
 
 while True:
 
@@ -494,7 +495,9 @@ while True:
     except socket.timeout:
         print("Caught socket timeout")
 
-        server = BlockingOSCUDPServer(("192.168.1.148", 12000), dispatcher)
+        #server = BlockingOSCUDPServer(("127.0.0.1", 12000), dispatcher)
+        server = BlockingOSCUDPServer(("192.168.1.144", 12000), dispatcher)
+        #server = BlockingOSCUDPServer(("192.168.1.148", 12000), dispatcher)
         #time.sleep(1)
 
     except Exception as e:
