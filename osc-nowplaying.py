@@ -504,6 +504,7 @@ while True:
     send_status(mpl, dirty_clients)
     for c in dirty_clients:
         #print(f"sent {c.ip_str} an update")
+        pass
 
     dirty_clients = []
 
