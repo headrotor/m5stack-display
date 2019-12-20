@@ -87,7 +87,7 @@ class OscClient(object):
             newmode = "PLAYER"
 
         self.mode = newmode
-        print(f"new mode {newmode}")
+        #print(f"new mode {newmode}")
 
     def send_status(self):
         if self.mode == "PLAYER":
@@ -376,7 +376,7 @@ def button_handler(client, address: str, *args: List[Any]) -> None:
 
     value = args[0]
     button = address[-1]
-    print(f"Got button {button} values: {value}")
+    #print(f"Got button {button} values: {value}")
 
     client = osc_client_dict[client[0]]
     dirty_clients.append(client)
@@ -395,7 +395,7 @@ def encoder_handler(client, address: str, *args: List[Any]) -> None:
     time_left = client.handle_encoder(value, time_left)
     return
 
-    print(f"Got addr {address} values: {value1}")
+    #print(f"Got addr {address} values: {value1}")
     
     if  address == "/encoder":
         if value1 > 0:
@@ -468,7 +468,7 @@ def sleep_timer(mpl, osc_clients):
         return
 
     time_left = time_left -1
-    print(f"Time left in sleep timer: {time_left})")
+    #print(f"Time left in sleep timer: {time_left})")
     if time_left == 0:
         mpl.client.stop()
 
@@ -503,7 +503,7 @@ while True:
 
     send_status(mpl, dirty_clients)
     for c in dirty_clients:
-        print(f"sent {c.ip_str} an update")
+        #print(f"sent {c.ip_str} an update")
 
     dirty_clients = []
 
