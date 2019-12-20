@@ -4,6 +4,8 @@ import time
 import traceback
 import _thread
 import datetime
+import socket
+import time
 
 # uses mpd2 for python 3 compat
 # for python 3: sudo pip3 install python-mpd2
@@ -23,6 +25,7 @@ class MPDLogic(object):
         self.reconnect()
         self.volume = 0
         self.state='stop'
+        self.song=0
         self.status_str =""
 
     def log_status(self, status):
@@ -40,12 +43,19 @@ class MPDLogic(object):
         self.client.timeout = 1                 # network timeout in secs (floats allow
         self.client.idletimeout = 2          # timeout for idle is handled seperately
 
-        self.client.connect(self.host, 6600)  # connect to localhost:6600
+        while True: 
+            try:
+                self.client.connect(self.host, 6600)  # connect to localhost:6600
+            except socket.timeout, socket.gaierror:
+                print("error connecting, retry")
+                time.sleep(1)
+            else:
+                return
 
 
     def clean_str(self, instr):
         cstr = instr.encode("ascii","ignore")
-        print(f"cleanstr: {cstr}")
+        #print(f"cleanstr: {cstr}")
         return cstr.decode("ascii")
 
     def get_short(self):
@@ -79,7 +89,10 @@ class MPDLogic(object):
     def get_volume(self):
         return self.volume
 
-    def get_status(self, client):
+    def get_status(self, client=None):
+        if client is None:
+            client = self.client
+
         e = None
         result = {}
         try:
@@ -105,17 +118,23 @@ class MPDLogic(object):
                 self.volume = int(result["volume"])
             if "state" in result:
                 self.state = result["state"]
+            if "song" in result:
+                self.song = int(result["song"])
 
+            #print(str(result))
             self.status = result
             return result
+
+        
 
         if "error" in result:
             self.handle_error(result["error"])
         return result
 
+
     def handle_error(self, errstr):
         print("******************** Error caught:") 
-        print(f"{errstr}")
+        #print(f"{errstr}")
         traceback.print_exc()
         self.reconnect()
 
@@ -139,7 +158,7 @@ class MPDLogic(object):
                 vol= 100
             if vol < 0:
                 vol = 0
-            print(f"setting vol to {vol}")
+            #print(f"setting vol to {vol}")
             try:
                 self.client.setvol(vol)
             except ProtocolError as e:
