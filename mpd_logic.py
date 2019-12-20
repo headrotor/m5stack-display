@@ -46,7 +46,7 @@ class MPDLogic(object):
         while True: 
             try:
                 self.client.connect(self.host, 6600)  # connect to localhost:6600
-            except socket.timeout, socket.gaierror:
+            except (socket.timeout, socket.gaierror):
                 print("error connecting, retry")
                 time.sleep(1)
             else:
