@@ -213,9 +213,10 @@ if __name__ == '__main__':
 
     lights = DMXLEDS()
 
-    lights.clients[0].set_switch(True,2)
-    time.sleep(5)
-    lights.clients[0].set_switch(True,5)
+    lights.clients[1].set_switch(True,2)
+    lights.clients[3].set_switch(True,2)
+    #time.sleep(5)
+    #lights.clients[2].set_switch(True,5)
     #lights.clients[0].set_switch(False)
     #time.sleep(0)
 

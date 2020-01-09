@@ -11,17 +11,24 @@ class BusLogic(object):
         self.route = route
 
     def get_data(self):
-        self.r = requests.get(self.route) 
+
+        #empty tree in case something goes wrong
+        self.root = ET.fromstring("<root></root>")                
+
+        try:
+            self.r = requests.get(self.route) 
+        except (ConnectionError, requests.exceptions.ConnectionError):
+            print("bus_logic connection error, sleeping 5)")
+            self.r.status_code = "connection error"
+            time.sleep(5)
+            return
+        
         if self.r.status_code == requests.codes.ok:
             try:
                 self.root = ET.fromstring(self.r.content)
             except ET.ParseError:
-
                 self.r.status_code = "XML parse error"
-                self.root = ET.fromstring("")                
-
-        else:
-            self.root = ET.fromstring("")
+                return
        #print(response.content)
 
     def get_route_dict(self):

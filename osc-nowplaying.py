@@ -1,3 +1,6 @@
+#!/usr/bin/python3
+# coding=utf-8
+
 from pythonosc.dispatcher import Dispatcher
 from typing import List, Any
 import time
