@@ -133,7 +133,7 @@ class MPDLogic(object):
 
 
     def handle_error(self, errstr):
-        print("******************** Error caught:") 
+        print("MPD Error caught, reconnecting") 
         #print(f"{errstr}")
         traceback.print_exc()
         self.reconnect()

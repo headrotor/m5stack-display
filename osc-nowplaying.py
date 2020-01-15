@@ -35,7 +35,7 @@ class RepeatedTimer(object):
         self.function   = function
         self.interval   = interval
         self.args       = args
-        self.kwargs     = kwargs
+        self.kwargs     = kwargs 
         self.is_running = False
         
         self.start()
@@ -63,6 +63,9 @@ class OscClient(object):
         self.bd = bus_data
         self.leds = leds
         self.c = SimpleUDPClient(ip_str, port)
+        self.heart_count = 0 # seconds since we last saw a heartbeat
+
+
         # mode is one of PLAYER, BUS, or LIGHTS. 
         self.mode = "PLAYER"
         self.mode = "LEDS"
@@ -78,7 +81,9 @@ class OscClient(object):
         self.sat_incr = 0.02
         self.spred_incr = 0.02
 
-
+    def handle_heartbeat(self):
+        """ reset heartbeat timeout because we got a heartbeat"""
+        self.heart_count = 0
 
 
     def next_mode(self):
@@ -107,7 +112,7 @@ class OscClient(object):
 
     def send_led_status(self):
         display = []
-        display.append("LM")
+        display.append("LEDs")
         #display.append("Lighting Mode")
         for i, val in enumerate(self.led_modes):
             if i == self.led_mode:
@@ -161,7 +166,13 @@ class OscClient(object):
         else:
              self.c.send_message("/leds", ["000000"]*12)
 
-
+        self.heart_count += 1
+        #print("client {} heartbeat count: {}".format(self.ip_str,
+                                                      self.heart_count))
+        if self.heart_count > 30:
+            print("client {} watchdog!".format(self.ip_str))
+            self.heart_count = 0
+            
     def get_led_bar(self, ratio, num_leds, color, black="00000"):
         """return a list of colors corresponding to ratio, this is 
         not for DMX LEDs, it's for color ring on M5STACK encoder"""
@@ -235,10 +246,9 @@ class OscClient(object):
 
 
 
-
-
-
     def handle_button(self, button, value):
+        """ a button was pressed, dispatch to the right 
+        handler depending on mode"""
         if self.mode == "PLAYER":
             self.handle_button_player(button, value)
         elif self.mode == "BUS":
@@ -370,7 +380,9 @@ def get_led_bar(ratio, num_leds, color, black="00000"):
 
 def heartbeat_handler(client, address: str, *args: List[Any]) -> None:
     #print("heartbeat from " + str(client))
-    pass
+    client = osc_client_dict[client[0]]
+    client.handle_heartbeat()
+
 
 
 def button_handler(client, address: str, *args: List[Any]) -> None:
