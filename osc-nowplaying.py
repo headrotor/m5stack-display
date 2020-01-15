@@ -1,6 +1,19 @@
 #!/usr/bin/python3
 # coding=utf-8
 
+##
+# TODO:
+#
+# 1. Mail, temp annunciator
+# 2. Split long status lines
+# 3. Test library metadata (as opposed to streaming)
+# 4. sleep logic
+# 5. Use volume bar to display LED values
+
+# LED stuff (start w blinkinlights)
+# A, LED presets recall/save (start with blinkinlights)
+# B. Animation -- rotate (shuttle)  hue through spread
+
 from pythonosc.dispatcher import Dispatcher
 from typing import List, Any
 import time
@@ -167,8 +180,7 @@ class OscClient(object):
              self.c.send_message("/leds", ["000000"]*12)
 
         self.heart_count += 1
-        #print("client {} heartbeat count: {}".format(self.ip_str,
-                                                      self.heart_count))
+        #print("client {} heartbeat count: {}".format(self.ip_str, self.heart_count))
         if self.heart_count > 30:
             print("client {} watchdog!".format(self.ip_str))
             self.heart_count = 0
