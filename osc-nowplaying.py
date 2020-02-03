@@ -182,7 +182,7 @@ class OscClient(object):
         self.heart_count += 1
         #print("client {} heartbeat count: {}".format(self.ip_str, self.heart_count))
         if self.heart_count > 30:
-            print("client {} watchdog!".format(self.ip_str))
+            #print("client {} watchdog!".format(self.ip_str))
             self.heart_count = 0
             
     def get_led_bar(self, ratio, num_leds, color, black="00000"):
