@@ -77,9 +77,9 @@ class DMXLEDS(object):
         self.clients[client_index].send_rgba(rgba)
 
     def send_hsv(self, h, s, v):
-        for c in self.clients:
+        for i, c in enumerate(self.clients):
             c.send_hsv(h, s, v)
-            self.carbon_write_hsv(c, h, s, v)
+            self.carbon_write_hsv(i, h, s, v)
             h = h + self.hue_spread
             while(h > 1.0):
                 h -= 1.0
