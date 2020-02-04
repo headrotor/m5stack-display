@@ -1,7 +1,6 @@
 import time
 import sys
 import math
-# Set up  client for testing
 from pythonosc.udp_client import SimpleUDPClient
 # docs at https://pypi.org/project/python-osc/
 
@@ -213,8 +212,13 @@ if __name__ == '__main__':
 
     lights = DMXLEDS()
 
-    lights.clients[1].set_switch(True,2)
-    lights.clients[3].set_switch(True,2)
+    client = 0
+
+    lights.clients[client].set_switch(True,2)
+    time.sleep(3)
+    lights.clients[client].set_switch(True)
+    time.sleep(2)
+    lights.clients[client].set_switch(False)
     #time.sleep(5)
     #lights.clients[2].set_switch(True,5)
     #lights.clients[0].set_switch(False)
