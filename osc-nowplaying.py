@@ -92,7 +92,7 @@ class OscClient(object):
         self.hue_incr = 0.02
         self.val_incr = 0.02
         self.sat_incr = 0.02
-        self.spred_incr = 0.02
+        self.spred_incr = 0.005
 
     def handle_heartbeat(self):
         """ reset heartbeat timeout because we got a heartbeat"""
@@ -244,7 +244,7 @@ class OscClient(object):
             elif self.led_modes[self.led_mode] == "Sat":
                 self.leds.change_sat(0.02)
             elif self.led_modes[self.led_mode] == "Spread":
-                self.leds.change_spread(0.01)
+                self.leds.change_spread(0.005)
         elif value < 0:
             if self.led_modes[self.led_mode] == "Value":
                 self.leds.change_val(-0.01)
@@ -253,7 +253,7 @@ class OscClient(object):
             elif self.led_modes[self.led_mode] == "Sat":
                 self.leds.change_sat(-0.02)
             elif self.led_modes[self.led_mode] == "Spread":
-                self.leds.change_spread(-0.01)
+                self.leds.change_spread(-0.005)
         self.leds.send()
 
 
