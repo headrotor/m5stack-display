@@ -1,6 +1,7 @@
 import time
 import sys
 import math
+import socket
 from pythonosc.udp_client import SimpleUDPClient
 # docs at https://pypi.org/project/python-osc/
 
@@ -57,12 +58,28 @@ class DMXLEDS(object):
         self.send_hsv(self.hue, self.sat, self.val)
 
 
+    def carbon_write_hsv(self, cid, hue, val, sat):
+        sock = socket.socket()
+        sock.connect( ("pidp.local", 2003) )
+        now = time.time()
+        msg = "{}-hue.metric {} {}\n".format(cid, hue, now)
+        sock.send(msg.encode('utf-8'))
+        msg = "{}-val.metric {} {}\n".format(cid, val, now)
+        sock.send(msg.encode('utf-8'))
+        msg = "{}-sat.metric {} {}\n".format(cid, sat, now)
+        sock.send(msg.encode('utf-8'))
+        sock.close()
+        print("sent carbon " + msg)
+
+
+
     def send_rgba(self,client_index, rgba):
         self.clients[client_index].send_rgba(rgba)
 
     def send_hsv(self, h, s, v):
         for c in self.clients:
             c.send_hsv(h, s, v)
+            self.carbon_write_hsv(c, h, s, v)
             h = h + self.hue_spread
             while(h > 1.0):
                 h -= 1.0
@@ -212,24 +229,27 @@ if __name__ == '__main__':
 
     lights = DMXLEDS()
 
-    client = 0
+    if len(sys.argv) == 1:
 
-    lights.clients[client].set_switch(True,2)
-    time.sleep(3)
-    lights.clients[client].set_switch(True)
-    time.sleep(2)
-    lights.clients[client].set_switch(False)
-    #time.sleep(5)
-    #lights.clients[2].set_switch(True,5)
-    #lights.clients[0].set_switch(False)
-    #time.sleep(0)
+        client = 0
 
-    exit(0)
+        lights.clients[client].set_switch(True,2)
+        time.sleep(3)
+        lights.clients[client].set_switch(True)
+        time.sleep(2)
+        lights.clients[client].set_switch(False)
+        #time.sleep(5)
+        #lights.clients[2].set_switch(True,5)
+        #lights.clients[0].set_switch(False)
+        #time.sleep(0)
 
-    if len(sys.argv) == 2:
+
+    elif len(sys.argv) == 2:
         print(str(sys.argv))
         lights.set_fade(1.0)
         lights.send_rgba(0, [0.5, 0, 0, 0.25])
+        time.sleep(100)
+        lights.send_rgba(0, [0., 0, 0, 0.])
         #time.sleep(5)
         #lights.set_fade(0.0)
         #lights.send_rgba(0, [0., 0, 0, 0.])
@@ -238,16 +258,16 @@ if __name__ == '__main__':
     elif len(sys.argv) == 4:
         #print(sending)
         lights.set_fade(0.5)
-        lights.hue_spread = 0.3
+        lights.hue_spread = 0.01
         lights.send_hsv(float(sys.argv[1]),
                         float(sys.argv[2]),
                         float(sys.argv[3]))
 
 
-        time.sleep(5)
-        lights.send_hsv(float(sys.argv[1]) + 0.1,
-                        float(sys.argv[2]),
-                        0.)
+        #time.sleep(5)
+        #lights.send_hsv(float(sys.argv[1]) + 0.1,
+        #                float(sys.argv[2]),
+        #                0.)
         
 
     elif len(sys.argv) == 6:
