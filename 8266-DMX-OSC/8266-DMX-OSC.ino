@@ -5,7 +5,9 @@
 
 
 // board is Wemos D1 mini  (8266)
+// schmatic https://wiki.wemos.cc/_media/products:d1:sch_d1_mini_v3.0.0.pdf
 // board install instructions: https://github.com/esp8266/Arduino
+
 // select Wemos D1 R1 in board manager
 
 
