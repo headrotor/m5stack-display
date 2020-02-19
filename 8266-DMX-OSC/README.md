@@ -3,7 +3,7 @@ DMX output from a ESP8266, controlled by OSC (Open Sound Control). Requires a MA
 Custom firmware, but the heavy lifting is done by the Arduino OSC library https://github.com/hideakitai/ArduinoOSC
 the DMX library from https://github.com/Rickgg/ESP-Dmx and the FastLED library https://github.com/FastLED/FastLED  for the gamma correction method `dim8_raw()`.
 
-On the server side, look at dmx_logic.py in the directory aabove for examples of how to send the OSC commands. 
+On the server side, look at `dmx_logic.py` in the directory above for examples of how to send the OSC commands. 
 Some special commands can enable gamma correction, change ramp time (between color changes) and enable dithering. 
 I'm especially proud of the dithering which uses [error diffusion](https://en.wikipedia.org/wiki/Error_diffusion) to  smooth the transitions between colors. 
 Because DMX is only 8-bit resolution, this makes the visual transitions, especially dimming, far more pleasing. 
