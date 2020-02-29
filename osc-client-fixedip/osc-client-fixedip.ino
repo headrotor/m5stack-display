@@ -1,3 +1,4 @@
+
 /*
   Board: M5Stack-Core-esp32
   ENcoder FACE
@@ -8,6 +9,10 @@
 // throttle drawing because of crash on rapid redraw?
 // visual confirmation of long button press
 // "no server" timestamp to draw if powered on with no server send
+//battery monitor
+// server load?
+// draw bargraph for light values
+// draw empty bargraph and filled portion
 
 #include <Arduino.h>
 

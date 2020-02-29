@@ -509,7 +509,16 @@ st = RepeatedTimer(sleep_interval, sleep_timer,  mpl, osc_clients) # it auto-sta
 
 # Send message and receive exactly one message (blocking)
 #server = BlockingOSCUDPServer(("192.168.1.148", 12000), dispatcher)
-server = BlockingOSCUDPServer(("192.168.1.144", 12000), dispatcher)
+
+
+try: 
+    server = BlockingOSCUDPServer(("192.168.1.144", 12000), dispatcher)
+    #server = BlockingOSCUDPServer(("127.0.0.1", 12000), dispatcher)
+
+except OSError as e:
+    print("could not connect, sorry")
+    raise e
+
 #server = BlockingOSCUDPServer(("127.0.0.1", 12000), dispatcher)
 
 while True:
