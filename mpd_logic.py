@@ -61,7 +61,6 @@ class MPDLogic(object):
     def get_short(self):
         """ return list of short string description of now playing info"""
         data = self.nowplaying()
-        #print("data dict:")
         #print(str(data))
 
         if "error" in data:
@@ -72,7 +71,14 @@ class MPDLogic(object):
         
         msg_list = []
         if len(data['title']) > 0:
-            msg_list.append(data['title'][:60])
+            title_str = data['title']
+            # special case for WFMU which puts way too much stuff in title
+            if 'on WFMU' in title_str:
+                title_list = title_str.split('on WFMU')
+                for title in title_list:
+                    msg_list.append(title[:60])
+            else:
+                msg_list.append(title_str[:60])
         msg_list.append(data['name'][:60])
         if data['state'] == 'play':
             msg_list.append("-{}-".format(data['artist'][:60]))
