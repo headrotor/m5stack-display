@@ -1,4 +1,5 @@
 
+
 /*
   Board: M5Stack-Core-esp32
   ENcoder FACE
@@ -16,11 +17,12 @@
 
 #include <Arduino.h>
 
+#include <M5Stack.h>
+
 #include <WiFi.h>
 #include <WiFiUdp.h>
 //#include <WiFiMulti.h>
-#include <WiFiClientSecure.h>
-#include <M5Stack.h>
+//#include <WiFiClientSecure.h>
 #include <FastLED.h>
 
 
