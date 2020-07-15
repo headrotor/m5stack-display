@@ -19,6 +19,7 @@ from typing import List, Any
 import time
 import sys
 import socket
+import os
 
 # Set up server and client for testing
 from pythonosc.osc_server import ThreadingOSCUDPServer
@@ -178,16 +179,16 @@ class OscClient(object):
         self.c.send_message("/time", 
                               time.strftime("%H:%M:%S", time.localtime())) 
 
-        print("sent time")
         if time_left > 0:
+             self.c.send_message("/leds", self.get_led_bar(float(time_left)/sleep_time, 12, "ff0000"))
              self.c.send_message("/leds", self.get_led_bar(float(time_left)/sleep_time, 12, "ff0000"))
         elif os.path.exists(mailfile):
             # send green if we have mail
             self.c.send_message("/leds", ["00ff00"]*12)
-            print("sent green")
+            self.c.send_message("/leds", ["00ff00"]*12)
         else:
             self.c.send_message("/leds", ["000000"]*12)
-            print("sent dark")
+            self.c.send_message("/leds", ["000000"]*12)
 
 
             
