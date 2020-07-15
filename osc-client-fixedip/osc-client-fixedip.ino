@@ -1,4 +1,5 @@
 
+
 /*
   Board: M5Stack-Core-esp32
   ENcoder FACE
@@ -14,13 +15,18 @@
 // draw bargraph for light values
 // draw empty bargraph and filled portion
 
+
+#define SCREENX 360
+#define SCREENY 240
+
 #include <Arduino.h>
+
+#include <M5Stack.h>
 
 #include <WiFi.h>
 #include <WiFiUdp.h>
 //#include <WiFiMulti.h>
-#include <WiFiClientSecure.h>
-#include <M5Stack.h>
+//#include <WiFiClientSecure.h>
 #include <FastLED.h>
 
 
@@ -48,10 +54,9 @@
 
 
 //const IPAddress ip(192, 168, 1, 225);
+const IPAddress ip(192, 168, 1, 226);
 
-const IPAddress ip(192, 168, 1, 227);
 
-//const IPAddress ip(192, 168, 1, 231);
 
 const IPAddress gateway(192, 168, 1, 1);
 const IPAddress subnet(255, 255, 255, 0);
@@ -178,7 +183,7 @@ void handle_leds(OSCMessage &msg) {
 
   // LED data is strings in the format #RRGGBB where RR is hex value for red, etc.
 
-  Serial.println("/leds: ");
+  //Serial.println("/leds: ");
 
   int i;
   int LED;
@@ -195,7 +200,7 @@ void handle_leds(OSCMessage &msg) {
     //digitalWrite(BUILTIN_LED, ledState);
     //Serial.print(i);
     //Serial.print(" /label: ");
-    Serial.println(lstr);
+    //Serial.println(lstr);
     lstr.toCharArray(led_str, COLS);
 
     unsigned long int colorint = strtoul(led_str, 0, 16);
@@ -407,8 +412,44 @@ void clear_display() {
 
 void paint_display() {
   int i;
+
+  // draw charging indicator:
+	int batt = M5.Power.getBatteryLevel();
+
+  // clear all dots
+
+
+	if (batt < 100) {
+		// draw red dot 
+		M5.Lcd.fillCircle(10, SCREENY-20,  5, TFT_RED);    
+		if (batt > 25) 
+			M5.Lcd.fillCircle(10, SCREENY-40, 5, TFT_YELLOW);    
+		else
+			M5.Lcd.fillCircle(10, SCREENY-40, 5, TFT_BLACK);
+			
+		if (batt > 50) 
+			M5.Lcd.fillCircle(10, SCREENY-60,  5, TFT_GREEN);    
+		else
+			M5.Lcd.fillCircle(10, SCREENY-60, 5, TFT_BLACK);			
+	}
+	else {
+			M5.Lcd.fillCircle(10, SCREENY-20, 5, TFT_BLACK);
+			M5.Lcd.fillCircle(10, SCREENY-40, 5, TFT_BLACK);
+			M5.Lcd.fillCircle(10, SCREENY-60, 5, TFT_BLACK);
+	}
+  
+  /*
+  if (M5.Power.isCharging()) {
+    //M5.Lcd.fillCircle(0, 0, 320, 10, TFT_BLACK);    
+    M5.Lcd.drawRoundRect(0,10, 10, 10, 5, TFT_GREEN);
+  } else {
+    M5.Lcd.drawRoundRect(0,10, 10, 10, 5, TFT_RED);
+  }
+*/
   if (redraw == 0)
     return;
+
+    
   M5.Lcd.setTextDatum(MC_DATUM);
 
   // Set text colour to orange with black background
@@ -574,10 +615,15 @@ void encoder_loop(void) {
 */
 
 void do_timer() {
-  static long last_time = 0;
-  long now = millis();
+  static unsigned long last_time = 0;
+  unsigned long now = millis();
 
-  if ((now - last_time) > 10000) {
+  if ((now - last_time) > 1000) {
+    //Serial.print("charging: ");
+    //Serial.println(M5.Power.isCharging());
+    
+    //Serial.print("battery: ");
+    //Serial.println(M5.Power.getBatteryLevel());
     send_OSC(HEART);
     last_time = now;
     if (stale == 1) {

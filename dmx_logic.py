@@ -3,6 +3,7 @@ import sys
 import math
 import socket
 from pythonosc.udp_client import SimpleUDPClient
+# pip install python-osc
 # docs at https://pypi.org/project/python-osc/
 
 def constrain(val, min_val=0., max_val=1.):
@@ -231,13 +232,16 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
 
-        client = 0
+        client = 2
 
-        lights.clients[client].set_switch(True,2)
-        time.sleep(3)
-        lights.clients[client].set_switch(True)
-        time.sleep(2)
-        lights.clients[client].set_switch(False)
+
+        while True:
+            #lights.clients[client].set_switch(True,2)
+            #time.sleep(3)
+            lights.clients[client].set_switch(True)
+            time.sleep(1)
+            lights.clients[client].set_switch(False)
+            time.sleep(1)
         #time.sleep(5)
         #lights.clients[2].set_switch(True,5)
         #lights.clients[0].set_switch(False)
