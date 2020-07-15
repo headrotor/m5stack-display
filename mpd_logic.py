@@ -82,7 +82,8 @@ class MPDLogic(object):
         msg_list.append(data['name'][:60])
         if data['state'] == 'play':
             msg_list.append("-{}-".format(data['artist'][:60]))
-            msg_list.append("{} ".format(data['song'][:60]))
+            if len(data['song']) > 1:
+                msg_list.append("{}".format(data['song'][:60]))
         else:
             msg_list.append("* {} *".format(data['state']))
 

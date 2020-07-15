@@ -101,6 +101,15 @@ class OscClient(object):
 
     def next_mode(self):
         if self.mode == "PLAYER":
+            newmode = "LEDS"
+        elif self.mode == "LEDS":
+            newmode = "PLAYER"
+
+        self.mode = newmode
+
+    def next_mode_with_bus(self):
+        # bus mode temporarily disabled; rename to next_mode() to reenable
+        if self.mode == "PLAYER":
             newmode = "BUS"
         elif self.mode == "BUS":
             newmode = "LEDS"
@@ -133,6 +142,10 @@ class OscClient(object):
             else:
                 display.append(" " + self.led_modes[i] + " ")
 
+        #display.append('foo!')
+        #display.append('BAR!')
+        #print(str(display))
+                
         if display != self.last_status:
             self.c.send_message("/status", display) 
             self.last_status = display
@@ -176,6 +189,8 @@ class OscClient(object):
 
         if time_left > 0:
              self.c.send_message("/leds", self.get_led_bar(float(time_left)/sleep_time, 12, "ff0000"))
+        elif test_for_mail():
+             self.c.send_message("/leds", ["00ff00"]*12)
         else:
              self.c.send_message("/leds", ["000000"]*12)
 
@@ -375,6 +390,9 @@ dirty_clients = []
 
 
 
+def test_for_mail():
+    """ return True if mail indicator is set"""
+    return True
 
 def get_led_bar(ratio, num_leds, color, black="00000"):
     """return a list of colors corresponding to ratio"""
