@@ -35,6 +35,9 @@ from mpd_logic import MPDLogic
 from bus_logic import BusData
 from dmx_logic import DMXLEDS
 
+mailfile = '/home/pi/mail.txt'
+
+
 # call sleep timer this many times before sleep
 sleep_time = 15
 # at this interval in seconds
@@ -100,9 +103,10 @@ class OscClient(object):
 
 
     def next_mode(self):
+        """ state machine to handle modes """
         if self.mode == "PLAYER":
-            newmode = "BUS"
-        elif self.mode == "BUS":
+#            newmode = "BUS"
+#        elif self.mode == "BUS":
             newmode = "LEDS"
         elif self.mode == "LEDS":
             newmode = "PLAYER"
@@ -174,11 +178,19 @@ class OscClient(object):
         self.c.send_message("/time", 
                               time.strftime("%H:%M:%S", time.localtime())) 
 
+        print("sent time")
         if time_left > 0:
              self.c.send_message("/leds", self.get_led_bar(float(time_left)/sleep_time, 12, "ff0000"))
+        elif os.path.exists(mailfile):
+            # send green if we have mail
+            self.c.send_message("/leds", ["00ff00"]*12)
+            print("sent green")
         else:
-             self.c.send_message("/leds", ["000000"]*12)
+            self.c.send_message("/leds", ["000000"]*12)
+            print("sent dark")
 
+
+            
         self.heart_count += 1
         #print("client {} heartbeat count: {}".format(self.ip_str, self.heart_count))
         if self.heart_count > 30:
