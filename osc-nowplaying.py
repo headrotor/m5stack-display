@@ -75,6 +75,7 @@ class RepeatedTimer(object):
 
 class OscClient(object):
     def __init__(self,ip_str, mplayer_logic, bus_data, leds, port=10000):
+        self.name = "unnamed"
         self.ip_str = ip_str
         self.mpl = mplayer_logic
         self.bd = bus_data
@@ -183,12 +184,13 @@ class OscClient(object):
              self.c.send_message("/leds", self.get_led_bar(float(time_left)/sleep_time, 12, "ff0000"))
              self.c.send_message("/leds", self.get_led_bar(float(time_left)/sleep_time, 12, "ff0000"))
         elif os.path.exists(mailfile):
-            # send green if we have mail
-            self.c.send_message("/leds", ["00ff00"]*12)
-            self.c.send_message("/leds", ["00ff00"]*12)
-        else:
-            self.c.send_message("/leds", ["000000"]*12)
-            self.c.send_message("/leds", ["000000"]*12)
+            if self.name == 'pidp':
+                # send green if we have mail
+                self.c.send_message("/leds", ["00ff00"]*12)
+                self.c.send_message("/leds", ["00ff00"]*12)
+            else:
+                self.c.send_message("/leds", ["000000"]*12)
+                self.c.send_message("/leds", ["000000"]*12)
 
 
             
@@ -366,20 +368,21 @@ dispatcher = Dispatcher()
 
 #print("sent at " + time.strftime("%H:%M:%S", time.localtime()))
 
-osc_client_ips = ["192.168.1.221",
-                  "192.168.1.225",
-                  "192.168.1.226",
-                  "192.168.1.227",
-                  "192.168.1.231"]
+osc_client_ips = [("192.168.1.225", "upstairs"),
+                  ("192.168.1.221", "door"),
+                  ("192.168.1.226", "pidp"),
+                  ("192.168.1.227","desk")]
+
 
 osc_clients = []
 osc_client_dict = {}
 for ip in osc_client_ips:
 
-    client = OscClient(ip, mpl, bd, leds)
+    client = OscClient(ip[0], mpl, bd, leds)
+    client.name = ip[1]
     osc_clients.append(client)
     # make dict so we can look up clinet server from IP returned from handler
-    osc_client_dict[ip] = client
+    osc_client_dict[client.ip_str] = client
 
 # list of clients that sent aus an osc command and need to be refreshed. 
 dirty_clients = []
