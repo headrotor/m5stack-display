@@ -188,9 +188,9 @@ class OscClient(object):
                 # send green if we have mail
                 self.c.send_message("/leds", ["00ff00"]*12)
                 self.c.send_message("/leds", ["00ff00"]*12)
-            else:
-                self.c.send_message("/leds", ["000000"]*12)
-                self.c.send_message("/leds", ["000000"]*12)
+        else:
+            self.c.send_message("/leds", ["000000"]*12)
+            self.c.send_message("/leds", ["000000"]*12)
 
 
             
