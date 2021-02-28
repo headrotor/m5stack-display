@@ -36,7 +36,7 @@ from mpd_logic import MPDLogic
 from bus_logic import BusData
 from dmx_logic import DMXLEDS
 
-mailfile = '/home/pi/mail.txt'
+mailfile = '/tmp/mail.txt'
 
 
 # call sleep timer this many times before sleep
@@ -188,6 +188,9 @@ class OscClient(object):
                 # send green if we have mail
                 self.c.send_message("/leds", ["00ff00"]*12)
                 self.c.send_message("/leds", ["00ff00"]*12)
+            else:
+                self.c.send_message("/leds", ["000000"]*12)
+                self.c.send_message("/leds", ["000000"]*12)
         else:
             self.c.send_message("/leds", ["000000"]*12)
             self.c.send_message("/leds", ["000000"]*12)
