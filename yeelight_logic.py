@@ -15,7 +15,7 @@ def constrain(val, min_val=0., max_val=1.):
 #print(discover_bulbs())
 
 
-bulbs = ["192.168.1.129"]
+bulbs = ["192.168.1.101"]
 
 
 # b = Bulb("192.168.1.129", auto_on=True)

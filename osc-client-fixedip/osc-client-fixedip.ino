@@ -53,8 +53,7 @@
 //const char* pass = "Password";
 
 
-//const IPAddress ip(192, 168, 1, 225);
-const IPAddress ip(192, 168, 1, 226);
+const IPAddress ip(192, 168, 1, 227);
 
 
 

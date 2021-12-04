@@ -2,6 +2,9 @@ import time
 import sys
 import math
 import socket
+import json
+import os.path
+
 from pythonosc.udp_client import SimpleUDPClient
 # pip install python-osc
 # docs at https://pypi.org/project/python-osc/
@@ -31,7 +34,6 @@ class DMXLEDS(object):
             self.clients.append(client)
 
         self.on = 0
-
 
     def change_hue(self,incr):
         new_hue = self.hue + incr
@@ -73,6 +75,16 @@ class DMXLEDS(object):
         print("sent carbon " + msg)
 
 
+    def save_preset(self,preset_number):
+        print(f"Saving preset {preset_number}")
+        for client in self.clients:
+            client.save_preset(preset_number)
+
+        
+    def load_preset(self,preset_number):
+        print(f"Loading preset {preset_number}")
+        for client in self.clients:
+            client.load_preset(preset_number)
 
     def send_rgba(self,client_index, rgba):
         self.clients[client_index].send_rgba(rgba)
@@ -119,8 +131,43 @@ class OscDMXClient(object):
         self.gamma = True
         self.fade_time = 0.
         self.dither_flag = True
+        self.num_presets = 8
+        self.preset_fname = ip_str + "-presets.txt"
 
 
+        if os.path.exists(self.preset_fname):
+            self.presets = self.load_presets_from_file()
+        else:
+            print("Preset file not found, initializing black presets")
+            self.presets = []
+            for i in range(self.num_presets):
+                self.presets.append([0.,  0., 0., 0.])
+
+    def load_presets_from_file(self):
+        print(f"Loading presets from {self.preset_fname}")
+        jsonfile = open(self.preset_fname, "r")
+        presets = json.load(jsonfile)
+        jsonfile.close()
+        return presets
+    
+    def save_presets_to_file(self):
+        print(f"Saving presets to {self.preset_fname}")
+        with open(self.preset_fname, "w") as jsonfile:
+            json.dumps(self.presets, jsonfile)
+        
+    def save_preset(self,preset_number):
+        print(f"client {self.ip_str} saving preset {preset_number}")
+        self.presets[preset_number] = self.rgba.copy()
+        print(self.presets)
+        self.save_presets_to_file()
+        
+    def load_preset(self,preset_number):
+        print(f"client {self.ip_str} loading preset {preset_number}")
+        print(self.presets)
+        self.rgba = self.presets[preset_number]
+        self.send_hex(self.rgba2hex(self.rgba))
+        print(self.presets)
+                        
     def constrain(self, val, min_val, max_val):
         return min(max_val, max(min_val, val))
 
