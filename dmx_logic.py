@@ -12,8 +12,8 @@ from pythonosc.udp_client import SimpleUDPClient
 def constrain(val, min_val=0., max_val=1.):
     return min(max_val, max(min_val, val))
 
-
 class DMXLEDS(object):
+    ''' Top level class, orchestrates commands to and from subclients'''
     def __init__(self):
         self.dmx_osc_client_ips = ["192.168.1.240",
                                    "192.168.1.241",
@@ -89,7 +89,14 @@ class DMXLEDS(object):
     def send_rgba(self,client_index, rgba):
         self.clients[client_index].send_rgba(rgba)
 
-    def send_hsv(self, h, s, v):
+    def send_hsv(self, client_index, h, s, v):
+        print(f"sending hsv {h} {s} {v} to {client_index}")
+        self.clients[client_index].send_hsv(h, s, v)
+        
+    def set_hsv_spread(self, spread):
+        self.hue_spread = constrain(spread, 0, 0.5)
+        
+    def send_hsv_all(self, h, s, v):
         for i, c in enumerate(self.clients):
             c.send_hsv(h, s, v)
             self.carbon_write_hsv(i, h, s, v)
@@ -122,6 +129,7 @@ class DMXLEDS(object):
 
 
 class OscDMXClient(object):
+    '''one of these objects per OSC endpoint.'''
     def __init__(self,ip_str,  port=10000):
         self.ip_str = ip_str
         self.c = SimpleUDPClient(ip_str, port)
@@ -153,7 +161,7 @@ class OscDMXClient(object):
     def save_presets_to_file(self):
         print(f"Saving presets to {self.preset_fname}")
         with open(self.preset_fname, "w") as jsonfile:
-            json.dumps(self.presets, jsonfile)
+            jsonfile.write(json.dumps(self.presets))
         
     def save_preset(self,preset_number):
         print(f"client {self.ip_str} saving preset {preset_number}")
