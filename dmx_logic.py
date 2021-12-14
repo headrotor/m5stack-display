@@ -171,7 +171,7 @@ class OscDMXClient(object):
         
     def load_preset(self,preset_number):
         print(f"client {self.ip_str} loading preset {preset_number}")
-        print(self.presets)
+        #print(self.presets)
         self.rgba = self.presets[preset_number]
         self.send_hex(self.rgba2hex(self.rgba))
         print(self.presets)

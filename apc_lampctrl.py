@@ -68,6 +68,8 @@ DMXlights.set_fade(0.01)
 
 
 pygame.init()
+# turn off audio or else ALSA takes 100% cpu
+pygame.mixer.quit()
 
 pygame.fastevent.init()
 event_get = pygame.fastevent.get
@@ -153,10 +155,11 @@ hsv = [0., 0., 0.]
 
 
 # buttons for each lamp: button set means slider changes that lamp
-buts = [0, 0, 0, 0]
-
+buts = [1, 1, 1, 1]
+# start with all lamps enabled
 for i in range(4):
-    out.note_on(i,0)                        
+    out.note_on(i,buts[i])
+
 
 
 store_flag = False
@@ -165,6 +168,7 @@ mode = "NONE"
 
 while going:
 
+    time.sleep(0.01)
     events = event_get()
     for e in events:
         if e.type in [QUIT]:
