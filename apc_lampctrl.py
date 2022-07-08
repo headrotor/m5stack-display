@@ -2,7 +2,7 @@ import pygame
 import pygame.midi
 from pygame.locals import *
 #from giantwin32 import *
-import sys, time
+import sys, time, os
 
 
 
@@ -34,10 +34,12 @@ class APC_Lights(object):
         self.out.note_on(grid_id, color)
 
     def set_rowdots(self, i, color):
+        ''' set row of round buttons on bottom, left 0'''
         assert( i < len(self.rowdot_ids))
         self.out.note_on(self.rowdot_ids[i],color)
 
     def set_coldots(self, i, color):
+        ''' set column of round buttons on right, top is 0'''
         assert( i < len(self.coldot_ids))
         self.out.note_on(self.coldot_ids[i],color)
         
@@ -66,12 +68,21 @@ DMXlights = dmx_logic.DMXLEDS()
 DMXlights.set_fade(0.01)
 
 
-
-pygame.init()
+#pygame.init()
 # turn off audio or else ALSA takes 100% cpu
+
+
+time.sleep(0.5)
+
+
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+pygame.init()
+pygame.midi.init()
+pygame.fastevent.init()
+
 pygame.mixer.quit()
 
-pygame.fastevent.init()
+
 event_get = pygame.fastevent.get
 event_post = pygame.fastevent.post
 

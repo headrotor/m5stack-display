@@ -9,6 +9,10 @@ from pythonosc.udp_client import SimpleUDPClient
 # pip install python-osc
 # docs at https://pypi.org/project/python-osc/
 
+# local color transform package
+from colorxform import ColorXform
+
+
 def constrain(val, min_val=0., max_val=1.):
     return min(max_val, max(min_val, val))
 
@@ -33,6 +37,7 @@ class DMXLEDS(object):
             client = OscDMXClient(ip)
             self.clients.append(client)
 
+        # are we currently lit?   Need to do this on device to save state!
         self.on = 0
 
     def change_hue(self,incr):
@@ -74,7 +79,11 @@ class DMXLEDS(object):
         sock.close()
         print("sent carbon " + msg)
 
-
+    def test_function(self, flag):
+        print(f"test function, {flag}")
+        for client in self.clients:
+            client.set_test_mode(flag)
+        
     def save_preset(self,preset_number):
         print(f"Saving preset {preset_number}")
         for client in self.clients:
@@ -136,12 +145,14 @@ class OscDMXClient(object):
         # array of current RGBA values, 0-1
         # colors are tuples or lists of RGBA values (A=Amber)
         self.rgba = [0.,  0., 0., 0.]
+        self.hsv = [0.,  0., 0.]
         self.gamma = True
         self.fade_time = 0.
         self.dither_flag = True
         self.num_presets = 8
         self.preset_fname = ip_str + "-presets.txt"
-
+        self.cx = ColorXform()
+        self.test_flag = 0
 
         if os.path.exists(self.preset_fname):
             self.presets = self.load_presets_from_file()
@@ -151,6 +162,11 @@ class OscDMXClient(object):
             for i in range(self.num_presets):
                 self.presets.append([0.,  0., 0., 0.])
 
+    def set_test_mode(self,flag):
+        self.test_flag = flag
+        print(f"client {self.ip_str} test flag: {flag}")        
+        self.send_hsv(self.hsv[0], self.hsv[1], self.hsv[2])
+        
     def load_presets_from_file(self):
         print(f"Loading presets from {self.preset_fname}")
         jsonfile = open(self.preset_fname, "r")
@@ -180,7 +196,16 @@ class OscDMXClient(object):
         return min(max_val, max(min_val, val))
 
     def send_hsv(self, h, s, v):
-        rgba = self.hsv_to_rgba(h, s, v)
+        self.hsv = [h, s, v]
+        rgba = self.cx.hsv_to_rgba(h, s, v)
+        self.cx.print_hsv(h, s, v)
+        if self. test_flag:
+            self.cx.print_hsv(h,s,v,"pre")
+            R, G, B = self.cx.rgba_to_rgb(rgba[0],rgba[1],rgba[2],rgba[3])
+            #print(f"RGB: {R:.3f} {G:.3f} {B:.3f}")
+            H, S, V = self.cx.rgb_to_hsv(R, G, B)
+            self.cx.print_hsv(H,S,V,"cooked")
+            rgba = self.cx.hsv_to_rgba(H, S, V)
         self.send_rgba(rgba)
 
     def send_rgba(self, rgba):
